@@ -34,7 +34,7 @@ export const Header: React.FC<HeaderProps> = ({ showBrokerBadge = true }) => {
         {/* Lado direito: Logo oficial da Corretora Lasacor */}
         {showBrokerBadge && (
           <div className="flex items-center shrink-0">
-            <div className="bg-[#E3F0FA] border border-[#BFE0F7] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full flex items-center gap-1.5 shadow-xs">
+            <div className="border border-[#BFE0F7] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full flex items-center gap-1.5 shadow-xs bg-inherit">
               <LasacorLogo
                 className="h-6 sm:h-7 w-auto object-contain"
                 alt="Lasacor Corretora de Seguros"
