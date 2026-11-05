@@ -562,18 +562,6 @@ export default function Index() {
               </p>
 
               {/* Botão de Exemplo rápido */}
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-[11px] text-[#5A7184]">
-                  Exemplo: <strong>43, 38, 20, 12, 45</strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={handleUsarExemplo}
-                  className="text-[11px] font-bold text-[#0066B2] hover:underline bg-[#E3F0FA] hover:bg-[#D7E4F0] px-2.5 py-1 rounded-lg transition cursor-pointer"
-                >
-                  Usar exemplo (5 vidas)
-                </button>
-              </div>
 
               {/* Alternador de Modo de Entrada: Entradas por Vida vs Digitação Rápida */}
               <div className="flex bg-[#F4F8FC] p-1 rounded-xl border border-[#D7E4F0] text-xs font-bold">
@@ -590,27 +578,6 @@ export default function Index() {
                   }`}
                 >
                   Entradas por vida
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setModoEntradaIdades('rapido')
-                    // Preenche input rápido com valores atuais da lista
-                    const validos = listaIdades
-                      .map((v) => parseInt(v.trim(), 10))
-                      .filter((n) => !Number.isNaN(n) && n >= 0 && n <= 99)
-                    if (validos.length > 0) {
-                      setIdadesInput(formatIdades(validos))
-                    }
-                    setIdadesError('')
-                  }}
-                  className={`flex-1 py-1.5 rounded-lg transition cursor-pointer text-center ${
-                    modoEntradaIdades === 'rapido'
-                      ? 'bg-white text-[#0066B2] shadow-xs'
-                      : 'text-[#5A7184] hover:text-[#04325C]'
-                  }`}
-                >
-                  Digitar tudo junto (vírgulas)
                 </button>
               </div>
 
