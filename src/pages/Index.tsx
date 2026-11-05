@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
-import { PortoSailLogo } from '@/components/PortoSailLogo'
+import React, { useState, useMemo } from 'react'
+import { PortoSaudeLogo, LasacorLogo } from '@/components/BrandLogos'
 import { QuizTimer } from '@/components/QuizTimer'
 import { ConfettiEffect } from '@/components/ConfettiEffect'
-import { createLead, type LeadQtdVidas, type LeadSituacao, type LeadPrazo } from '@/services/leads'
+import { createLead, type LeadSituacao, type LeadPrazo } from '@/services/leads'
 import {
   maskPhone,
   maskCNPJ,
@@ -10,9 +10,16 @@ import {
   isValidPhone,
   isValidCNPJ,
   calculateScore,
+  faixaVidas,
+  parseIdades,
+  formatIdades,
 } from '@/lib/masks'
+import { LASACOR_CNPJ } from '@/lib/broker'
 import {
   Users,
+  Plus,
+  Trash2,
+  Cake,
   Building2,
   FileCheck2,
   CalendarDays,
@@ -34,8 +41,8 @@ import {
 type QuizStep = 'intro' | 1 | 2 | 3 | 4 | 5 | 6 | 'contact' | 'success'
 
 interface QuizAnswers {
-  qtd_vidas?: string
-  qtd_vidas_key?: LeadQtdVidas
+  idades_vidas?: string
+  qtd_vidas_key?: string
   tipo_cnpj?: string
   cnpj?: string
   situacao_plano?: string
@@ -59,6 +66,15 @@ export default function Index() {
   // Respostas acumuladas
   const [answers, setAnswers] = useState<QuizAnswers>({})
 
+  // Estado da pergunta 1 (idades das vidas a serem cobertas)
+  const [idadesInput, setIdadesInput] = useState<string>('')
+  const [idadesError, setIdadesError] = useState<string>('')
+  const [idadesConfirmadas, setIdadesConfirmadas] = useState<number[]>([])
+  // Lista de entradas individuais por vida para máxima conveniência mobile
+  const [listaIdades, setListaIdades] = useState<string[]>([''])
+  // Modo de inserção: 'individual' (entradas por vida) ou 'rapido' (texto separado por vírgula)
+  const [modoEntradaIdades, setModoEntradaIdades] = useState<'individual' | 'rapido'>('individual')
+
   // Estado da pergunta 2 (CNPJ opcional)
   const [selectedCnpjType, setSelectedCnpjType] = useState<string>('')
   const [cnpjInput, setCnpjInput] = useState<string>('')
@@ -73,7 +89,7 @@ export default function Index() {
   const [whatsapp, setWhatsapp] = useState('')
   const [email, setEmail] = useState('')
   const [empresa, setEmpresa] = useState('')
-  const [lgpdConsent, setLgpdConsent] = useState(false)
+  const [lgpdConsent, setLgpdConsent] = useState(true)
 
   const [formErrors, setFormErrors] = useState<{
     nome?: string
@@ -118,29 +134,89 @@ export default function Index() {
     }, 320)
   }
 
-  // Pergunta 1: Quantas pessoas
-  const vidasOptions: { label: string; key: LeadQtdVidas; icon: typeof Users; desc: string }[] = [
-    { label: '1 a 5 vidas', key: '1-5', icon: Users, desc: 'Ideal para sócios e pequenas equipes' },
-    { label: '6 a 10 vidas', key: '6-10', icon: Users, desc: 'Pequenas empresas em crescimento' },
-    {
-      label: '11 a 20 vidas',
-      key: '11-20',
-      icon: Users,
-      desc: 'Condições especiais e carências reduzidas',
-    },
-    {
-      label: '21 a 50 vidas',
-      key: '21-50',
-      icon: Users,
-      desc: 'Planos completos com coparticipação inteligente',
-    },
-    {
-      label: 'Mais de 50 vidas',
-      key: '50+',
-      icon: Users,
-      desc: 'Atendimento corporativo e estudo avançado',
-    },
-  ]
+  // Pergunta 1: idades das vidas a serem cobertas
+  // Cálculo baseado no modo ativo
+  const idadesFromLista = useMemo(() => {
+    const valid: number[] = []
+    const invalid: string[] = []
+    listaIdades.forEach((val) => {
+      const trimmed = val.trim()
+      if (!trimmed) return
+      const n = parseInt(trimmed, 10)
+      if (Number.isNaN(n) || n < 0 || n > 99) {
+        invalid.push(trimmed)
+      } else {
+        valid.push(n)
+      }
+    })
+    return { valid, invalid }
+  }, [listaIdades])
+
+  const idadesParsedRapido = parseIdades(idadesInput)
+
+  const idadesParsedAtual =
+    modoEntradaIdades === 'individual' ? idadesFromLista : idadesParsedRapido
+  const qtdVidasDetectada = idadesParsedAtual.valid.length
+  const idadesConfirmadasTexto = formatIdades(idadesConfirmadas)
+
+  const handleAddVida = () => {
+    setListaIdades((prev) => [...prev, ''])
+  }
+
+  const handleRemoveVida = (index: number) => {
+    setListaIdades((prev) => {
+      if (prev.length <= 1) return ['']
+      return prev.filter((_, i) => i !== index)
+    })
+    setIdadesError('')
+  }
+
+  const handleUpdateVida = (index: number, val: string) => {
+    const digitsOnly = val.replace(/\D/g, '').slice(0, 2)
+    setListaIdades((prev) => {
+      const next = [...prev]
+      next[index] = digitsOnly
+      return next
+    })
+    setIdadesError('')
+  }
+
+  // Preenche a lista com um exemplo prático
+  const handleUsarExemplo = () => {
+    setListaIdades(['43', '38', '20', '12', '45'])
+    setIdadesInput('43, 38, 20, 12, 45')
+    setIdadesError('')
+  }
+
+  const handleConfirmStep1 = (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    const activeParsed = modoEntradaIdades === 'individual' ? idadesFromLista : idadesParsedRapido
+
+    if (activeParsed.valid.length === 0) {
+      setIdadesError(
+        modoEntradaIdades === 'individual'
+          ? 'Informe a idade de ao menos uma vida para continuar.'
+          : 'Informe as idades separadas por vírgula (Exemplo: 43, 38, 20, 12, 45).',
+      )
+      return
+    }
+    if (activeParsed.invalid.length > 0) {
+      setIdadesError('Cada idade deve ser um número entre 0 e 99. Verifique os valores informados.')
+      return
+    }
+    setIdadesError('')
+    setIdadesConfirmadas(activeParsed.valid)
+    setAnswers((prev) => ({
+      ...prev,
+      idades_vidas: formatIdades(activeParsed.valid),
+      qtd_vidas_key: faixaVidas(activeParsed.valid.length),
+    }))
+    // Sincroniza ambos os modos para consistência
+    setIdadesInput(formatIdades(activeParsed.valid))
+    setListaIdades(activeParsed.valid.map(String))
+    setDirection('forward')
+    setStep(2)
+  }
 
   // Pergunta 2: CNPJ
   const cnpjTypes = [
@@ -281,8 +357,12 @@ export default function Index() {
     })
     setFinalScore(score)
 
+    const idadesTexto = formatIdades(idadesConfirmadas)
+
     const fullRespostas = {
       ...answers,
+      idades_vidas: idadesTexto,
+      qtd_vidas: `${idadesConfirmadas.length} ${idadesConfirmadas.length === 1 ? 'vida' : 'vidas'}`,
       nome: nome.trim(),
       whatsapp: whatsapp.trim(),
       email: email.trim(),
@@ -296,7 +376,8 @@ export default function Index() {
         email: email.trim(),
         empresa: empresa.trim() || undefined,
         cnpj: answers.cnpj || undefined,
-        qtd_vidas: answers.qtd_vidas_key || '1-5',
+        qtd_vidas: faixaVidas(idadesConfirmadas.length),
+        idades_vidas: idadesTexto,
         situacao_plano: answers.situacao_key || 'ja-tenho',
         operadora_atual: answers.operadora_atual || 'Não informada',
         cidade_uf: answers.cidade_uf || 'São Paulo / SP',
@@ -341,7 +422,7 @@ export default function Index() {
       {/* Background decorativo desktop estilo Porto Saúde */}
       <div className="hidden lg:block absolute inset-0 -z-10 bg-radial from-[#E3F0FA]/60 via-[#F4F8FC] to-[#E2EAF2] opacity-80" />
       <div className="hidden lg:block absolute top-20 right-20 -z-10 opacity-5 pointer-events-none">
-        <PortoSailLogo size={420} variant="plain" />
+        <PortoSaudeLogo className="w-[420px] h-auto" alt="" />
       </div>
 
       {/* Card Principal Mobile-First: 0-480px ocupa a tela toda; Desktop fica centralizado com max-w-[480px] */}
@@ -389,10 +470,10 @@ export default function Index() {
         {step === 'intro' && (
           <div className="p-5 sm:p-7 flex-1 flex flex-col justify-between text-center animate-fade-in">
             <div className="space-y-4 pt-2">
-              {/* Vela flutuante animada */}
+              {/* Logo Porto Saúde em destaque */}
               <div className="flex justify-center mb-1">
-                <div className="p-3 bg-[#E3F0FA]/80 rounded-2xl shadow-inner animate-sail-sway">
-                  <PortoSailLogo size={68} variant="badge" />
+                <div className="p-3 bg-[#E3F0FA]/80 rounded-2xl shadow-inner">
+                  <PortoSaudeLogo className="h-16 w-auto" />
                 </div>
               </div>
 
@@ -425,7 +506,7 @@ export default function Index() {
               </div>
               <div className="flex flex-col items-center text-center p-2 rounded-xl bg-[#F4F8FC]">
                 <Zap className="w-4 h-4 text-[#FFC72C] fill-[#FFC72C] mb-1" />
-                <span className="text-[11px] font-bold text-[#04325C]">Em até 24h</span>
+                <span className="text-[11px] font-bold text-[#04325C]">Online</span>
               </div>
               <div className="flex flex-col items-center text-center p-2 rounded-xl bg-[#F4F8FC]">
                 <HeartHandshake className="w-4 h-4 text-[#1FA971] mb-1" />
@@ -456,92 +537,196 @@ export default function Index() {
         )}
 
         {/* ============================================================ */}
-        {/* PERGUNTA 1: QUANTIDADE DE VIDAS */}
+        {/* PERGUNTA 1: IDADES DAS VIDAS A SEREM COBERTAS */}
         {/* ============================================================ */}
         {step === 1 && (
-          <div
+          <form
+            onSubmit={handleConfirmStep1}
             className={`p-4 sm:p-6 flex-1 flex flex-col justify-between ${
               direction === 'forward' ? 'animate-slide-in-right' : 'animate-slide-in-left'
             }`}
           >
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-[#0066B2] font-bold text-xs uppercase tracking-wider">
-                <Users className="w-4 h-4" />
+                <Cake className="w-4 h-4" />
                 Pergunta 1 de 6
               </div>
 
               <h2 className="text-xl sm:text-2xl font-extrabold text-[#04325C] leading-snug">
-                Quantas pessoas serão cobertas pelo plano?
+                Quais as idades das vidas a serem cobertas?
               </h2>
 
               <p className="text-xs sm:text-sm text-[#5A7184]">
-                Inclua sócios, colaboradores e dependentes que entrarão no plano.
+                Informe as idades das pessoas que entrarão no plano (titulares, dependentes e
+                sócios).
               </p>
 
-              <div className="space-y-2.5 pt-2">
-                {vidasOptions.map((opt) => {
-                  const isSelected =
-                    selectedOptionId === opt.key || answers.qtd_vidas_key === opt.key
-
-                  return (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      onClick={() =>
-                        handleSelectOption(
-                          2,
-                          () =>
-                            setAnswers((prev) => ({
-                              ...prev,
-                              qtd_vidas: opt.label,
-                              qtd_vidas_key: opt.key,
-                            })),
-                          opt.key,
-                        )
-                      }
-                      className={`w-full min-h-[64px] px-4 py-3 rounded-2xl border text-left flex items-center justify-between gap-3 transition-all cursor-pointer active:scale-[0.98] ${
-                        isSelected
-                          ? 'border-[#0066B2] bg-[#E3F0FA] shadow-[0_4px_16px_rgba(0,102,178,0.18)] scale-[1.01]'
-                          : 'border-[#D7E4F0] bg-white hover:border-[#0066B2]/50 hover:bg-[#F4F8FC]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3.5">
-                        <div
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                            isSelected ? 'bg-[#0066B2] text-white' : 'bg-[#E3F0FA] text-[#0066B2]'
-                          }`}
-                        >
-                          <Users className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="font-extrabold text-[#04325C] text-base leading-tight">
-                            {opt.label}
-                          </div>
-                          <div className="text-xs text-[#5A7184] font-medium leading-tight mt-0.5">
-                            {opt.desc}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div
-                        className={`w-6 h-6 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                          isSelected
-                            ? 'border-[#0066B2] bg-[#0066B2] text-white'
-                            : 'border-[#D7E4F0] bg-white'
-                        }`}
-                      >
-                        {isSelected && <CheckCircle2 className="w-4 h-4" />}
-                      </div>
-                    </button>
-                  )
-                })}
+              {/* Botão de Exemplo rápido */}
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px] text-[#5A7184]">
+                  Exemplo: <strong>43, 38, 20, 12, 45</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleUsarExemplo}
+                  className="text-[11px] font-bold text-[#0066B2] hover:underline bg-[#E3F0FA] hover:bg-[#D7E4F0] px-2.5 py-1 rounded-lg transition cursor-pointer"
+                >
+                  Usar exemplo (5 vidas)
+                </button>
               </div>
+
+              {/* Alternador de Modo de Entrada: Entradas por Vida vs Digitação Rápida */}
+              <div className="flex bg-[#F4F8FC] p-1 rounded-xl border border-[#D7E4F0] text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModoEntradaIdades('individual')
+                    setIdadesError('')
+                  }}
+                  className={`flex-1 py-1.5 rounded-lg transition cursor-pointer text-center ${
+                    modoEntradaIdades === 'individual'
+                      ? 'bg-white text-[#0066B2] shadow-xs'
+                      : 'text-[#5A7184] hover:text-[#04325C]'
+                  }`}
+                >
+                  Entradas por vida
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModoEntradaIdades('rapido')
+                    // Preenche input rápido com valores atuais da lista
+                    const validos = listaIdades
+                      .map((v) => parseInt(v.trim(), 10))
+                      .filter((n) => !Number.isNaN(n) && n >= 0 && n <= 99)
+                    if (validos.length > 0) {
+                      setIdadesInput(formatIdades(validos))
+                    }
+                    setIdadesError('')
+                  }}
+                  className={`flex-1 py-1.5 rounded-lg transition cursor-pointer text-center ${
+                    modoEntradaIdades === 'rapido'
+                      ? 'bg-white text-[#0066B2] shadow-xs'
+                      : 'text-[#5A7184] hover:text-[#04325C]'
+                  }`}
+                >
+                  Digitar tudo junto (vírgulas)
+                </button>
+              </div>
+
+              {/* MODO 1: ENTRADAS NUMÉRICAS POR VIDA (Mobile-first, botões grandes) */}
+              {modoEntradaIdades === 'individual' && (
+                <div className="space-y-2.5 pt-1">
+                  <div className="max-h-[36vh] overflow-y-auto space-y-2 pr-1">
+                    {listaIdades.map((idade, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 bg-[#FAFDFE] p-2 rounded-xl border border-[#D7E4F0]"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-[#E3F0FA] text-[#0066B2] font-black text-xs flex items-center justify-center shrink-0">
+                          #{idx + 1}
+                        </div>
+                        <div className="flex-1">
+                          <label htmlFor={`idade-vida-${idx}`} className="sr-only">
+                            Idade da vida {idx + 1}
+                          </label>
+                          <input
+                            id={`idade-vida-${idx}`}
+                            type="tel"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            value={idade}
+                            onChange={(e) => handleUpdateVida(idx, e.target.value)}
+                            placeholder="Idade (ex: 35)"
+                            maxLength={2}
+                            className="w-full h-11 px-3 rounded-lg border border-[#D7E4F0] bg-white text-base font-bold text-[#04325C] focus:outline-none focus:border-[#0066B2] focus:ring-2 focus:ring-[#0066B2]/20"
+                          />
+                        </div>
+                        <span className="text-xs text-[#5A7184] font-medium shrink-0">anos</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveVida(idx)}
+                          disabled={listaIdades.length <= 1 && !idade}
+                          className="w-9 h-9 rounded-lg text-[#5A7184] hover:text-[#E5484D] hover:bg-red-50 flex items-center justify-center transition disabled:opacity-30 cursor-pointer shrink-0"
+                          title="Remover esta vida"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddVida}
+                    className="w-full h-11 border-2 border-dashed border-[#0066B2]/40 hover:border-[#0066B2] hover:bg-[#E3F0FA]/40 text-[#0066B2] font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Adicionar outra vida</span>
+                  </button>
+                </div>
+              )}
+
+              {/* MODO 2: DIGITAÇÃO SEPARADA POR VÍRGULA */}
+              {modoEntradaIdades === 'rapido' && (
+                <div className="space-y-2 pt-1">
+                  <label htmlFor="idades-input" className="block text-xs font-bold text-[#04325C]">
+                    Idades (separadas por vírgula):
+                  </label>
+                  <input
+                    id="idades-input"
+                    type="text"
+                    inputMode="numeric"
+                    value={idadesInput}
+                    onChange={(e) => {
+                      setIdadesInput(e.target.value)
+                      setIdadesError('')
+                    }}
+                    placeholder="Ex.: 43, 38, 20, 12, 45"
+                    className={`w-full h-12 px-3.5 rounded-2xl border bg-white text-base font-semibold text-[#04325C] focus:outline-none focus:ring-2 ${
+                      idadesError
+                        ? 'border-[#E5484D] focus:ring-[#E5484D]/20'
+                        : 'border-[#D7E4F0] focus:border-[#0066B2] focus:ring-[#0066B2]/20'
+                    }`}
+                  />
+                  <p className="text-[11px] text-[#5A7184]">
+                    Digite números de 0 a 99 separados por vírgula. Exemplo: 43, 38, 20, 12, 45
+                  </p>
+                </div>
+              )}
+
+              {/* Contagem de vidas detectada */}
+              {qtdVidasDetectada > 0 && idadesParsedAtual.invalid.length === 0 && (
+                <div className="bg-[#E3F0FA]/70 border border-[#BFE0F7] rounded-xl px-3.5 py-2.5 flex items-center gap-2 animate-fade-in">
+                  <Users className="w-4 h-4 text-[#0066B2] shrink-0" />
+                  <span className="text-sm font-bold text-[#04325C]">
+                    {qtdVidasDetectada} {qtdVidasDetectada === 1 ? 'vida' : 'vidas'}
+                  </span>
+                  <span className="text-xs text-[#5A7184] ml-auto font-medium truncate max-w-[180px]">
+                    {formatIdades(idadesParsedAtual.valid)}
+                  </span>
+                </div>
+              )}
+
+              {idadesError && (
+                <p className="text-xs text-[#E5484D] font-semibold flex items-center gap-1 animate-fade-in">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  {idadesError}
+                </p>
+              )}
             </div>
 
-            <p className="text-[11px] text-center text-[#5A7184] pt-3">
-              ⚡ Toque na opção desejada para avançar automaticamente
-            </p>
-          </div>
+            <div className="pt-4">
+              <button
+                type="submit"
+                disabled={qtdVidasDetectada === 0}
+                className="w-full min-h-[58px] bg-[#0066B2] hover:bg-[#04325C] disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold text-base rounded-2xl shadow-[0_8px_20px_rgba(0,102,178,0.22)] flex items-center justify-center gap-2 transition cursor-pointer"
+              >
+                <span>Continuar</span>
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+          </form>
         )}
 
         {/* ============================================================ */}
@@ -1224,16 +1409,20 @@ export default function Index() {
 
               <p className="text-sm sm:text-base text-[#5A7184] leading-relaxed max-w-sm mx-auto">
                 Recebemos as respostas da sua empresa. Um especialista <strong>Porto Saúde</strong>{' '}
-                da <strong>Lasacor</strong> entrará em contato pelo WhatsApp em até{' '}
-                <strong>24h</strong> com o seu comparativo.
+                da <strong>Lasacor</strong> entrará em contato pelo WhatsApp de forma{' '}
+                <strong>Online</strong> com o seu comparativo.
               </p>
 
               {/* Card resumo */}
               <div className="bg-[#FAFDFE] border border-[#BFE0F7] rounded-2xl p-4 text-left text-xs space-y-1.5 max-w-sm mx-auto shadow-xs">
                 <div className="flex justify-between">
-                  <span className="text-[#5A7184]">Vidas estimadas:</span>
+                  <span className="text-[#5A7184]">Vidas:</span>
                   <span className="font-bold text-[#04325C]">
-                    {answers.qtd_vidas || '1-5 vidas'}
+                    {idadesConfirmadas.length > 0
+                      ? `${idadesConfirmadas.length} ${
+                          idadesConfirmadas.length === 1 ? 'vida' : 'vidas'
+                        } · ${idadesConfirmadasTexto}`
+                      : '—'}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -1245,6 +1434,10 @@ export default function Index() {
                 <div className="flex justify-between">
                   <span className="text-[#5A7184]">WhatsApp cadastrado:</span>
                   <span className="font-bold text-[#0066B2]">{whatsapp}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#5A7184]">Corretora:</span>
+                  <span className="font-bold text-[#04325C]">Lasacor · CNPJ {LASACOR_CNPJ}</span>
                 </div>
                 <div className="flex justify-between pt-1 border-t border-[#D7E4F0]">
                   <span className="text-[#5A7184]">Status do estudo:</span>
@@ -1261,7 +1454,7 @@ export default function Index() {
               {(() => {
                 const cleanPhone = '5511999999999' // Central Lasacor
                 const encodedMsg = encodeURIComponent(
-                  `Olá! Acabei de preencher o quiz da Porto Saúde pela Lasacor para a empresa ${empresa || nome} (${answers.qtd_vidas || 'PME'}). Gostaria de receber meu estudo!`,
+                  `Olá! Acabei de preencher o quiz da Porto Saúde pela Lasacor para a empresa ${empresa || nome} (${idadesConfirmadas.length} vidas). Gostaria de receber meu estudo!`,
                 )
                 const waUrl = `https://wa.me/${cleanPhone}?text=${encodedMsg}`
 
@@ -1290,7 +1483,10 @@ export default function Index() {
                   setCnpjInput('')
                   setSelectedCnpjType('')
                   setCidadeInput('')
-                  setLgpdConsent(false)
+                  setIdadesInput('')
+                  setIdadesError('')
+                  setIdadesConfirmadas([])
+                  setLgpdConsent(true)
                 }}
                 className="text-xs font-semibold text-[#5A7184] hover:text-[#0066B2] transition block mx-auto py-1"
               >

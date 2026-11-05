@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import { PortoSailLogo } from '@/components/PortoSailLogo'
+import { PortoSaudeLogo } from '@/components/BrandLogos'
 import { Mail, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react'
 
 export default function ForgotPassword() {
@@ -31,7 +31,7 @@ export default function ForgotPassword() {
       <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 border border-[#D7E4F0] shadow-[0_12px_36px_rgba(4,50,92,0.08)]">
         <div className="text-center space-y-2 mb-6">
           <div className="flex justify-center mb-1">
-            <PortoSailLogo size={48} variant="badge" />
+            <PortoSaudeLogo className="h-12 w-auto" />
           </div>
           <h1 className="text-2xl font-black text-[#04325C]">Recuperar Senha</h1>
           <p className="text-xs text-[#5A7184]">

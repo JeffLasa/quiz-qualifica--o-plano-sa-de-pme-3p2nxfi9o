@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import { PortoSailLogo } from '@/components/PortoSailLogo'
+import { PortoSaudeLogo } from '@/components/BrandLogos'
 import { Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react'
 
 export default function Login() {
@@ -34,7 +34,7 @@ export default function Login() {
         {/* Logo e cabeçalho */}
         <div className="text-center space-y-2 mb-6">
           <div className="flex justify-center mb-1">
-            <PortoSailLogo size={52} variant="badge" />
+            <PortoSaudeLogo className="h-14 w-auto" />
           </div>
           <h1 className="text-2xl font-black text-[#04325C]">Acesso do Corretor</h1>
           <p className="text-xs text-[#5A7184]">Painel de Leads e Gestão PME · Lasacor Corretora</p>

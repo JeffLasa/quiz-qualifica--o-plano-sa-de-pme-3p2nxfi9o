@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { PortoSailLogo } from '@/components/PortoSailLogo'
+import { PortoSaudeLogo } from '@/components/BrandLogos'
 import { ArrowLeft } from 'lucide-react'
 
 export default function NotFound() {
@@ -7,7 +7,7 @@ export default function NotFound() {
     <div className="min-h-[calc(100vh-140px)] flex items-center justify-center p-4 text-center">
       <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-[#D7E4F0] shadow-sm space-y-4">
         <div className="flex justify-center mb-2">
-          <PortoSailLogo size={64} variant="badge" />
+          <PortoSaudeLogo className="h-16 w-auto" />
         </div>
 
         <div className="text-4xl font-black text-[#04325C]">404</div>

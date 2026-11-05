@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import { PortoSailLogo } from '@/components/PortoSailLogo'
+import { PortoSaudeLogo, LasacorLogo } from '@/components/BrandLogos'
 import { listLeads, updateLeadStatus, type LeadRecord, type LeadStatus } from '@/services/leads'
 import { useRealtime } from '@/hooks/use-realtime'
 import {
@@ -17,6 +17,42 @@ import {
   RefreshCw,
   ExternalLink,
 } from 'lucide-react'
+
+/** Nº de vidas a partir do campo `idades_vidas` (ou do JSON `respostas.idades_vidas`); null se indisponível. */
+function contarVidas(lead: LeadRecord): number | null {
+  const bruto =
+    lead.idades_vidas ||
+    (typeof lead.respostas === 'string'
+      ? safeRespostas(lead.respostas).idades_vidas
+      : lead.respostas?.idades_vidas)
+  if (!bruto || typeof bruto !== 'string') return null
+  const idades = bruto.split(/[;,\s]+/).filter(Boolean)
+  return idades.length > 0 ? idades.length : null
+}
+
+function safeRespostas(raw: string): { idades_vidas?: string } {
+  try {
+    return JSON.parse(raw || '{}')
+  } catch {
+    return {}
+  }
+}
+
+/** Rótulo de vidas exibido no painel: idades quando existem, faixa como fallback. */
+function labelVidas(lead: LeadRecord): string {
+  const bruto =
+    lead.idades_vidas ||
+    (typeof lead.respostas === 'string'
+      ? safeRespostas(lead.respostas).idades_vidas
+      : lead.respostas?.idades_vidas)
+  if (typeof bruto === 'string' && bruto.trim()) {
+    const idades = bruto.split(/[;,\s]+/).filter(Boolean)
+    if (idades.length > 0) {
+      return `${idades.length} (${idades.join(', ')})`
+    }
+  }
+  return `${lead.qtd_vidas}`
+}
 
 export default function LeadsDashboard() {
   const { user, signOut, loading: authLoading } = useAuth()
@@ -90,6 +126,8 @@ export default function LeadsDashboard() {
       total > 0 ? Math.round(leads.reduce((acc, l) => acc + (l.score || 0), 0) / total) : 0
 
     const totalVidasEst = leads.reduce((acc, l) => {
+      const idadesCount = contarVidas(l)
+      if (idadesCount !== null) return acc + idadesCount
       switch (l.qtd_vidas) {
         case '50+':
           return acc + 60
@@ -217,9 +255,14 @@ export default function LeadsDashboard() {
       <header className="bg-white border-b border-[#D7E4F0] sticky top-0 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <PortoSailLogo size={36} variant="badge" />
-            <div>
-              <div className="font-extrabold text-[#04325C] text-base leading-tight">
+            <PortoSaudeLogo className="h-9 w-auto" alt="Porto Saúde" />
+            <span className="text-[#D7E4F0] hidden sm:inline text-lg font-light">|</span>
+            <LasacorLogo
+              className="h-7 w-auto hidden sm:inline object-contain"
+              alt="Lasacor Corretora de Seguros"
+            />
+            <div className="border-l border-[#D7E4F0] pl-3 ml-1">
+              <div className="font-extrabold text-[#04325C] text-sm sm:text-base leading-tight">
                 Painel do Corretor · <span className="text-[#0066B2]">Lasacor</span>
               </div>
               <div className="text-[11px] text-[#5A7184] font-medium">
@@ -421,7 +464,7 @@ export default function LeadsDashboard() {
 
                           <td className="py-3 px-4">
                             <span className="font-extrabold text-[#04325C] bg-[#E3F0FA] text-[#0066B2] px-2 py-0.5 rounded-md">
-                              {lead.qtd_vidas} vidas
+                              {labelVidas(lead)} {labelVidas(lead).includes('(') ? '' : 'vidas'}
                             </span>
                           </td>
 
@@ -472,7 +515,7 @@ export default function LeadsDashboard() {
                             {lead.nome}
                           </div>
                           <div className="text-xs text-[#5A7184] font-medium">
-                            {lead.empresa || lead.cidade_uf}
+                            {lead.empresa || lead.cidade_uf} · Idades: {labelVidas(lead)}
                           </div>
                         </div>
                         {getScoreBadge(lead.score || 0)}
@@ -480,7 +523,7 @@ export default function LeadsDashboard() {
 
                       <div className="flex flex-wrap items-center gap-2 text-xs">
                         <span className="bg-[#E3F0FA] text-[#0066B2] font-bold px-2 py-0.5 rounded-md">
-                          {lead.qtd_vidas} vidas
+                          {labelVidas(lead)} {labelVidas(lead).includes('(') ? '' : 'vidas'}
                         </span>
                         {getStatusBadge(lead.status)}
                         <span className="text-[#5A7184]">
@@ -571,6 +614,16 @@ export default function LeadsDashboard() {
                   <div>
                     <span className="font-bold text-[#04325C] block">CNPJ:</span>
                     <span>{selectedLead.cnpj || 'Não informado'}</span>
+                  </div>
+                  <div>
+                    <span className="font-bold text-[#04325C] block">Idades das vidas:</span>
+                    <span>
+                      {selectedLead.idades_vidas ||
+                        (typeof selectedLead.respostas === 'string'
+                          ? safeRespostas(selectedLead.respostas).idades_vidas
+                          : selectedLead.respostas?.idades_vidas) ||
+                        'Não informadas'}
+                    </span>
                   </div>
                   <div>
                     <span className="font-bold text-[#04325C] block">Cidade/UF:</span>

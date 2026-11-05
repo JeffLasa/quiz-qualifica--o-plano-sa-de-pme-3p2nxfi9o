@@ -1,3 +1,5 @@
+import type { LeadQtdVidas } from '@/services/leads'
+
 // Máscaras e validações utilitárias
 
 export function maskPhone(value: string): string {
@@ -62,6 +64,40 @@ export function isValidCNPJ(cnpj: string): boolean {
   if (resultado !== parseInt(digitos.charAt(1), 10)) return false
 
   return true
+}
+
+/** Interpreta a lista de idades digitada (ex.: "43,38,20,12,45"). Idades válidas: inteiros de 0 a 99. */
+export function parseIdades(value: string): { valid: number[]; invalid: string[] } {
+  const tokens = value
+    .split(/[,;\s]+/)
+    .map((t) => t.trim().replace(/[^0-9]/g, ''))
+    .filter((t) => t.length > 0)
+
+  const valid: number[] = []
+  const invalid: string[] = []
+  for (const token of tokens) {
+    const n = parseInt(token, 10)
+    if (Number.isNaN(n) || n < 0 || n > 99) {
+      invalid.push(token)
+    } else {
+      valid.push(n)
+    }
+  }
+  return { valid, invalid }
+}
+
+/** Formata a lista de idades para exibição/gravação (ex.: "43, 38, 20, 12, 45"). */
+export function formatIdades(idades: number[]): string {
+  return idades.join(', ')
+}
+
+/** Faixa de nº de vidas a partir da quantidade de idades informadas (mantém o campo `qtd_vidas`). */
+export function faixaVidas(qtd: number): LeadQtdVidas {
+  if (qtd >= 51) return '50+'
+  if (qtd >= 21) return '21-50'
+  if (qtd >= 11) return '11-20'
+  if (qtd >= 6) return '6-10'
+  return '1-5'
 }
 
 export function calculateScore(answers: {

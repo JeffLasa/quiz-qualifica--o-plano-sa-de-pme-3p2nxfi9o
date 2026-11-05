@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
-import { PortoSailLogo } from './PortoSailLogo'
+import { PortoSaudeLogo, LasacorLogo } from './BrandLogos'
+import { LASACOR_CNPJ } from '@/lib/broker'
+import { ShieldCheck, Lock } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -7,37 +9,36 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { ShieldCheck, Lock, FileText } from 'lucide-react'
 
 interface HeaderProps {
   showBrokerBadge?: boolean
-  hideLasacorMobile?: boolean
 }
 
 export const Header: React.FC<HeaderProps> = ({ showBrokerBadge = true }) => {
   return (
     <header className="w-full bg-white/90 backdrop-blur-md border-b border-[#D7E4F0] sticky top-0 z-40 transition-all">
       <div className="max-w-4xl mx-auto px-4 h-14 sm:h-16 flex items-center justify-between">
-        {/* Lado esquerdo: Marca Porto Saúde */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <PortoSailLogo size={34} variant="badge" className="shrink-0 shadow-sm" />
-          <div className="flex flex-col leading-tight">
-            <span className="font-extrabold text-[#04325C] text-base sm:text-lg tracking-tight">
-              Porto <span className="text-[#0066B2]">Saúde</span>
-            </span>
-            <span className="text-[10px] sm:text-[11px] font-semibold text-[#5A7184] tracking-wide uppercase">
+        {/* Lado esquerdo: Logo oficial Porto Saúde */}
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <PortoSaudeLogo className="h-8 sm:h-9 w-auto shrink-0" alt="Porto Saúde" />
+          <div className="hidden sm:flex flex-col leading-tight min-w-0">
+            <span className="font-extrabold text-[#04325C] text-[11px] sm:text-lg tracking-tight truncate">
               Plano de Saúde PME
+            </span>
+            <span className="text-[9px] sm:text-[11px] font-semibold text-[#5A7184] tracking-wide uppercase">
+              Cotação para empresas
             </span>
           </div>
         </div>
 
-        {/* Lado direito: Badge discreto da Corretora Lasacor */}
+        {/* Lado direito: Logo oficial da Corretora Lasacor */}
         {showBrokerBadge && (
-          <div className="flex items-center">
-            <div className="bg-[#E3F0FA] border border-[#BFE0F7] text-[#04325C] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full flex items-center gap-1.5 text-xs font-semibold shadow-xs">
-              <span className="inline-block w-2 h-2 rounded-full bg-[#1FA971] animate-pulse" />
-              <span className="hidden sm:inline">Corretora parceira:</span>
-              <span className="text-[#0066B2] font-bold">Lasacor</span>
+          <div className="flex items-center shrink-0">
+            <div className="bg-[#E3F0FA] border border-[#BFE0F7] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full flex items-center gap-1.5 shadow-xs">
+              <LasacorLogo
+                className="h-6 sm:h-7 w-auto object-contain"
+                alt="Lasacor Corretora de Seguros"
+              />
             </div>
           </div>
         )}
@@ -51,9 +52,14 @@ export const Footer: React.FC = () => {
 
   return (
     <footer className="w-full border-t border-[#D7E4F0]/80 bg-white/80 backdrop-blur-xs py-4 px-4 text-center text-xs text-[#5A7184] mt-auto">
-      <div className="max-w-md mx-auto space-y-1.5">
+      <div className="max-w-md mx-auto space-y-2">
+        <div className="flex items-center justify-center gap-3 pt-1">
+          <PortoSaudeLogo className="h-7 w-auto" alt="Porto Saúde" />
+          <span className="text-[#D7E4F0] font-light">|</span>
+          <LasacorLogo className="h-6 w-auto" alt="Lasacor Corretora de Seguros" />
+        </div>
         <p className="font-medium text-[#10243A]">
-          Lasacor — Corretora de Seguros · CNPJ 00.000.000/0001-00 · Susep
+          Lasacor Corretora de Seguros · CNPJ {LASACOR_CNPJ}
         </p>
         <p className="text-[11px]">
           Corretora autorizada para comercialização dos produtos Porto Saúde PME.
@@ -88,7 +94,7 @@ export const Footer: React.FC = () => {
           <div className="text-xs text-[#10243A] space-y-3 max-h-[50vh] overflow-y-auto pr-1 leading-relaxed">
             <p>
               <strong>1. Finalidade da Coleta:</strong> Os dados fornecidos (nome,
-              telefone/WhatsApp, e-mail, informações sobre quantidade de vidas e CNPJ) têm como
+              telefone/WhatsApp, e-mail, informações sobre as idades das vidas e CNPJ) têm como
               finalidade exclusiva elaborar estudos comparativos e orçamentos personalizados de
               planos de saúde corporativos (Porto Saúde PME).
             </p>

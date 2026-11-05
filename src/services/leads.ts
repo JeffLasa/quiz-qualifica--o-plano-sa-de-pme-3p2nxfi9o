@@ -8,6 +8,7 @@ export type LeadStatus = 'novo' | 'em-atendimento' | 'proposta-enviada' | 'fecha
 
 export interface LeadRespostas {
   qtd_vidas?: string
+  idades_vidas?: string
   tipo_cnpj?: string
   cnpj?: string
   situacao_plano?: string
@@ -29,6 +30,7 @@ export interface LeadRecord extends RecordModel {
   cidade_uf: string
   prazo_contratacao: LeadPrazo
   respostas: LeadRespostas | string
+  idades_vidas?: string
   score: number
   status: LeadStatus
   origem: string
@@ -48,6 +50,7 @@ export interface CreateLeadInput {
   cidade_uf: string
   prazo_contratacao: LeadPrazo
   respostas: LeadRespostas
+  idades_vidas?: string
   score: number
   origem?: string
 }
